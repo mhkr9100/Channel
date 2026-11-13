@@ -12,5 +12,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "tests", "test-agents"]
+  "include": ["src", "tests", "test-agents", "bridge", "server.ts"]
 }

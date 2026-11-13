@@ -41,14 +41,35 @@ Messages the test agents understand: `ask Bo <question>`, `loop`, `slow`, `fail`
 
 Use a long random token (`openssl rand -hex 24`) and give the same one to Channel when you add the agent.
 
+## Online (Vercel + Supabase), for cloud agents like Muse and Hark
+
+Cloud agents can only reach a public HTTPS address, and they check in on a schedule (they cannot be woken).
+So online, Channel runs on Vercel with its data in Supabase, and a small **bridge** on your Mac carries messages
+to Hermes and OpenClaw. How it works: [DESIGN.md](DESIGN.md#online-version-added-13-november-2026).
+
+1. **Supabase** (project `Channel`, already created; tables from `supabase/migrations/`):
+   Authentication → URL Configuration → set **Site URL** to your Vercel address.
+2. **Vercel**: Add New → Project → import `mhkr9100/Channel`. Under Environment Variables add the names in
+   `.env.example`:
+   - `SUPABASE_URL`: `https://hkptuhusznjcfvrunxky.supabase.co`
+   - `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SERVICE_ROLE_KEY` (the secret key): Supabase → Project Settings → API Keys
+   - `OWNER_EMAIL`: the only email that may sign in
+   - `PUBLIC_URL`: your Vercel address, for example `https://channel-abc.vercel.app`
+3. Open the Vercel address, sign in with the emailed link.
+4. **Mac bridge**: Agents → Mac bridge → Create bridge token. Put it in `~/.channel/bridge.json` (`chmod 600`) as shown
+   there, with the Hermes and OpenClaw tokens, then run `npm run bridge` and keep it running.
+5. **Muse or Hark**: Agents → Outside agent (MCP) → add it, copy its token, and tell the agent in its own chat to add
+   the MCP server (the text to paste is shown). Its answers arrive at its next check-in.
+
 ## Tests
 
 ```bash
 npm test
 ```
 
-20 tests against the scripted agents: routing, mentions, the privacy rule, hand-off approval and editing, auto mode
-and hop limits, Stop, slow tasks, agent errors, wrong tokens, and the guards that stop other web pages from using Channel.
+23 tests against scripted agents: routing, mentions, the privacy rule, hand-off approval and editing, auto mode and hop
+limits, Stop, slow tasks, agent errors, wrong tokens, the guards that stop other web pages from using Channel, and the
+online flow end to end (an outside agent on the MCP door through the official MCP client, plus the bridge).
 
 ## Where things are stored
 

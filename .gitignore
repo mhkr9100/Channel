@@ -5,3 +5,7 @@ data/
 .DS_Store
 data-dev/
 .npm_cache/
+public/
+.env
+.env.local
+.vercel/

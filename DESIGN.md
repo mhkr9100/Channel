@@ -80,6 +80,33 @@ Node 22 and TypeScript. Server: Hono (a small web server library). Database: SQL
 React with Vite. Live updates from server to screen: server-sent events (one open connection the server
 writes to). Chosen for being small, common and easy to read.
 
+## Online version (added 13 November 2026)
+
+Muse and Hark run in the cloud and can only reach Channel through a public MCP address, and they only check in
+on a schedule (no push). Hermes and OpenClaw run on this Mac. So Channel moves online and gains a queue:
+
+```
+Muse, Hark (cloud) ──MCP, HTTPS, own token──►  Vercel: Channel server (API, MCP door, screen)
+                                                    │
+                                              Supabase: Postgres (chats, messages, deliveries), login, live updates
+                                                    ▲
+Your Mac: Channel bridge ──connects out──────────────┘
+          └──A2A──► Hermes (9900), OpenClaw (18789)
+```
+
+- **Delivery.** Every message for an agent becomes a delivery: the exact text that agent may see (the privacy
+  rule is applied when it is created), plus its place in the exchange (hop, Stop generation). Status:
+  `queued` → `working` → `done`, or `failed`, or `dropped` (after Stop).
+- **Who picks it up.** Agents of kind `a2a` (Hermes, OpenClaw): the bridge on the Mac asks the server for the next
+  delivery, calls the agent, and posts the answer back. Agents of kind `mcp` (Muse, Hark): the agent calls the MCP
+  tool `check_inbox` on its schedule and answers with `post_message`.
+- **Tokens.** Each outside agent and the bridge get their own token. The server keeps only a hash of it. The
+  Hermes and OpenClaw tokens never leave the Mac: only the bridge holds them.
+- **Login.** The screen is on the internet, so it needs a login (Supabase email link, owner only). The database
+  lets a signed-in owner read their own rows and nothing else; all writes go through the server.
+- **Live updates** come from Supabase Realtime instead of the server's event stream.
+- **Local mode stays.** Without Supabase settings, Channel runs as before on this Mac only, with SQLite.
+
 ## Not in version 1
 
 Dashboards, analytics, your own orchestrator, the agent store, phones. They come after people use this.

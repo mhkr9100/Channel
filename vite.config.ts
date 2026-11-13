@@ -13,5 +13,5 @@ export default defineConfig({
     // "^/api/" (not "/api"), so the screen's own src/web/api.ts is not forwarded too.
     proxy: { "^/api/": { target: "http://127.0.0.1:8787", changeOrigin: false } },
   },
-  build: { outDir: "../../dist/web", emptyOutDir: true },
+  build: { outDir: "../../public", emptyOutDir: true },
 });
