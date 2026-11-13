@@ -16,7 +16,7 @@
     "test": "node --test --import tsx --test-concurrency=1 tests/*.test.ts",
     "test-agents": "tsx test-agents/run.ts",
     "bridge": "tsx bridge/run.ts",
-    "build:web": "vite build"
+    "build:web": "vite build && node scripts/embed-web.mjs"
   },
   "dependencies": {
     "@hono/mcp": "^0.3.5",
