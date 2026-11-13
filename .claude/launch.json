@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "channel-dev", "runtimeExecutable": "node", "runtimeArgs": ["scripts/dev.mjs", "--test-agents"], "port": 5173, "env": { "CHANNEL_DATA": "data-dev" } }
+  ]
+}
