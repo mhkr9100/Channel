@@ -10,14 +10,14 @@ export interface Message {
 }
 export interface Delivery { id: number; chatId: number; agentId: string; agentKind: "a2a" | "mcp"; status: "queued" | "working" | "done" | "failed" | "dropped"; createdAt: string }
 export interface Chat { id: number; title: string; kind: "direct" | "group"; auto: boolean; hopLimit: number; agentIds: string[]; createdAt: string; last: Message | null }
-export interface Config { mode: "local" | "online"; mcpUrl: string; supabaseUrl?: string; supabaseKey?: string }
+export interface Config { mode: "local" | "online"; mcpUrl: string; supabaseUrl?: string; supabaseKey?: string; setupError?: string | null }
 
 let supabase: SupabaseClient | null = null;
 export const getSupabase = () => supabase;
 
 export async function loadConfig(): Promise<Config> {
   const cfg = (await (await fetch("/api/config")).json()) as Config;
-  if (cfg.mode === "online" && cfg.supabaseUrl && cfg.supabaseKey && !supabase) {
+  if (cfg.mode === "online" && !cfg.setupError && cfg.supabaseUrl && cfg.supabaseKey && !supabase) {
     supabase = createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth: { persistSession: true, detectSessionInUrl: true } });
   }
   return cfg;

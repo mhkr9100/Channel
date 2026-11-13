@@ -24,6 +24,7 @@ export function App() {
   }, []);
 
   if (configError) return <div className="center-page"><p className="banner error">{configError}</p></div>;
+  if (config?.setupError) return <div className="center-page"><div className="signin"><div className="brand"><span className="logo">◎</span> Channel</div><p className="banner warn">{config.setupError}</p></div></div>;
   if (!config || signedIn === null) return <div className="center-page muted">Loading…</div>;
   if (!signedIn) return <SignIn />;
   return <Main config={config} />;
@@ -70,8 +71,10 @@ function Main({ config }: { config: Config }) {
   const activeRef = useRef<number | null>(null);
   activeRef.current = activeId;
 
-  const loadAgents = useCallback(() => api.agents().then(setAgents).catch(() => {}), []);
-  const loadChats = useCallback(() => api.chats().then(setChats).catch(() => {}), []);
+  const [authError, setAuthError] = useState("");
+  const onLoadError = (e: Error) => { if (/sign in|owner/i.test(e.message)) setAuthError(e.message); };
+  const loadAgents = useCallback(() => api.agents().then(setAgents).catch(onLoadError), []);
+  const loadChats = useCallback(() => api.chats().then(setChats).catch(onLoadError), []);
 
   useEffect(() => { loadAgents(); loadChats(); }, [loadAgents, loadChats]);
 
@@ -100,6 +103,14 @@ function Main({ config }: { config: Config }) {
 
   const agentById = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
   const active = chats.find((c) => c.id === activeId) ?? null;
+
+  if (authError) return (
+    <div className="center-page"><div className="signin">
+      <div className="brand"><span className="logo">◎</span> Channel</div>
+      <p className="banner warn">{authError}</p>
+      <button className="ghost" onClick={() => getSupabase()?.auth.signOut()}>Sign out</button>
+    </div></div>
+  );
 
   return (
     <div className="app">

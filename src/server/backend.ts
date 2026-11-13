@@ -22,34 +22,47 @@ export function localBackend(dataDir: string, publicUrl = "http://127.0.0.1:8787
 }
 
 /**
- * Environment (set on the host, never in git):
- *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   server only
- *   SUPABASE_PUBLISHABLE_KEY                  safe for the browser (sign-in and live updates)
- *   OWNER_EMAIL                               the only email allowed to sign in to the screen
- *   PUBLIC_URL                                for example https://channel-xyz.vercel.app (used to show the MCP address)
+ * Environment (set on the host, never in git). Names accepted, first match wins:
+ *   SUPABASE_URL                                              (also NEXT_PUBLIC_SUPABASE_URL)
+ *   SUPABASE_SERVICE_ROLE_KEY, SUPABASE_SECRET_KEY            server only
+ *   SUPABASE_PUBLISHABLE_KEY, SUPABASE_ANON_KEY               safe for the browser (sign-in, live updates)
+ *   OWNER_EMAIL                                               the only email allowed to sign in to the screen
+ *   PUBLIC_URL      optional; on Vercel it defaults to the production address (VERCEL_PROJECT_PRODUCTION_URL)
+ * The Vercel Supabase integration sets the Supabase names automatically; OWNER_EMAIL has to be added by hand.
  */
 export function onlineBackend(env: Record<string, string | undefined> = process.env): Backend {
-  const url = need(env, "SUPABASE_URL");
-  const db = createClient(url, need(env, "SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false, autoRefreshToken: false } });
-  const ownerEmail = need(env, "OWNER_EMAIL").trim().toLowerCase();
-  const publicUrl = (env.PUBLIC_URL ?? "").replace(/\/+$/, "");
+  const url = pick(env, "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
+  const serviceKey = pick(env, "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY");
+  const publishableKey = pick(env, "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const ownerEmail = (env.OWNER_EMAIL ?? "").trim().toLowerCase();
+  const host = env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : "";
+  const publicUrl = (env.PUBLIC_URL || host).replace(/\/+$/, "");
+
+  const missing = [!url && "SUPABASE_URL", !serviceKey && "SUPABASE_SERVICE_ROLE_KEY", !publishableKey && "SUPABASE_PUBLISHABLE_KEY", !ownerEmail && "OWNER_EMAIL"].filter(Boolean) as string[];
+  const setupError = missing.length ? `Channel is not set up yet. Add ${missing.join(", ")} in Vercel → Settings → Environment Variables, then redeploy.` : null;
+
+  const db = url && serviceKey ? createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
+  const needDb = () => {
+    if (!db || setupError) throw new Error(setupError ?? "Database not configured.");
+    return db;
+  };
   return {
     mode: "online",
-    engineFor: (owner) => new Engine(new SupabaseStore(db, owner), { directA2A: false }),
+    engineFor: (owner) => new Engine(new SupabaseStore(needDb(), owner), { directA2A: false }),
     async ownerFromRequest(c: Context) {
+      if (setupError || !db) return null;
       const jwt = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
       if (!jwt || jwt.startsWith("chn_")) return null;
       const { data, error } = await db.auth.getUser(jwt);
       if (error || !data.user) return null;
       return (data.user.email ?? "").toLowerCase() === ownerEmail ? data.user.id : null;
     },
-    findToken: (hash) => findApiTokenOnline(db, hash),
-    publicConfig: { supabaseUrl: url, supabaseKey: need(env, "SUPABASE_PUBLISHABLE_KEY"), mcpUrl: publicUrl ? `${publicUrl}/mcp` : "/mcp" },
+    findToken: async (hash) => (setupError || !db ? null : findApiTokenOnline(db, hash)),
+    publicConfig: { supabaseUrl: url, supabaseKey: publishableKey, mcpUrl: publicUrl ? `${publicUrl}/mcp` : "/mcp", setupError },
   };
 }
 
-function need(env: Record<string, string | undefined>, name: string): string {
-  const v = env[name];
-  if (!v) throw new Error(`Missing environment variable ${name}.`);
-  return v;
+function pick(env: Record<string, string | undefined>, ...names: string[]): string {
+  for (const n of names) if (env[n]) return env[n]!;
+  return "";
 }

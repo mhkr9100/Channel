@@ -94,7 +94,7 @@ export function createApi(backend: Backend) {
   ui.use("*", async (c, next) => {
     if (backend.mode === "local" && c.req.method !== "GET" && c.req.header("x-channel") !== "1") return c.json({ error: "Missing x-channel header." }, 403);
     const owner = await backend.ownerFromRequest(c);
-    if (!owner) return c.json({ error: "Please sign in." }, 401);
+    if (!owner) return c.json({ error: backend.mode === "online" ? "Please sign in with the owner's email (OWNER_EMAIL in Vercel)." : "Please sign in." }, 401);
     c.set("owner", owner);
     c.set("engine", backend.engineFor(owner));
     await next();
