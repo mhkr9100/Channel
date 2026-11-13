@@ -47,15 +47,13 @@ Cloud agents can only reach a public HTTPS address, and they check in on a sched
 So online, Channel runs on Vercel with its data in Supabase, and a small **bridge** on your Mac carries messages
 to Hermes and OpenClaw. How it works: [DESIGN.md](DESIGN.md#online-version-added-13-november-2026).
 
-1. **Supabase** (project `Channel`, already created; tables from `supabase/migrations/`):
-   Authentication → URL Configuration → set **Site URL** to your Vercel address.
-2. **Vercel**: Add New → Project → import `mhkr9100/Channel`. Under Environment Variables add the names in
-   `.env.example`:
-   - `SUPABASE_URL`: `https://hkptuhusznjcfvrunxky.supabase.co`
-   - `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SERVICE_ROLE_KEY` (the secret key): Supabase → Project Settings → API Keys
-   - `OWNER_EMAIL`: the only email that may sign in
-   - `PUBLIC_URL`: your Vercel address, for example `https://channel-abc.vercel.app`
-3. Open the Vercel address, sign in with the emailed link.
+1. **Vercel**: project `channel` (live at https://channel-eta-two.vercel.app), connected to GitHub, so every push deploys.
+   The Vercel Supabase integration already set the Supabase settings. Add one by hand:
+   - `OWNER_EMAIL`: the only email that may sign in (Settings → Environment Variables), then redeploy.
+   `PUBLIC_URL` is optional; it defaults to the production address.
+2. **Supabase** (project `Channel`, tables from `supabase/migrations/`): Authentication → URL Configuration → set
+   **Site URL** to `https://channel-eta-two.vercel.app` and add it under Redirect URLs, so the sign-in email link works.
+3. Open https://channel-eta-two.vercel.app and sign in with the emailed link.
 4. **Mac bridge**: Agents → Mac bridge → Create bridge token. Put it in `~/.channel/bridge.json` (`chmod 600`) as shown
    there, with the Hermes and OpenClaw tokens, then run `npm run bridge` and keep it running.
 5. **Muse or Hark**: Agents → Outside agent (MCP) → add it, copy its token, and tell the agent in its own chat to add
